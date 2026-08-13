@@ -30,10 +30,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegistrationPage() {
+fun RegistrationPage(navController: NavController) {
 //    var studentName: String = "";
 //    var icNumber: Int = 0;
 //    var registerCourse: String = "";
@@ -124,7 +125,7 @@ fun RegistrationPage() {
                 Text("Malaysian")
             }
 
-            Button() { }
+            Button(onClick = {}) { }
 
         }
     }
