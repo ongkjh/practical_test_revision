@@ -34,7 +34,8 @@ fun RegistrationSuccess(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text("Registration successful!", style = MaterialTheme.typography.displayMedium)

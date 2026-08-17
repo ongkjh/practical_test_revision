@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
@@ -31,25 +32,44 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistrationPage(navController: NavController) {
 
+    // ---- Form state ----
     var studentName by remember { mutableStateOf("") }
-    // Kept as String so the field can start empty instead of showing "0"
     var icNumber by remember { mutableStateOf("") }
     var citizen by remember { mutableStateOf(false) }
 
-    // Dropdown menu
+    // ---- Error state (null = no error) ----
+    var nameError by remember { mutableStateOf<String?>(null) }
+    var icError by remember { mutableStateOf<String?>(null) }
+
+    // ---- Dropdown ----
     var dropdownExpanded by remember { mutableStateOf(false) }
     val programmeList = listOf("DFT", "DCS")
     var selectedProgramme by remember { mutableStateOf(programmeList.first()) }
 
-    val icValue = icNumber.toIntOrNull()
-    val formValid = studentName.isNotBlank() && icValue != null
+    // Runs all the checks, fills in the error messages, returns true if the form is clean
+    fun validate(): Boolean {
+        nameError = when {
+            studentName.isBlank() -> "Student name is required"
+            studentName.trim().length < 3 -> "Name must be at least 3 characters"
+            !studentName.all { it.isLetter() || it.isWhitespace() } ->
+                "Name can only contain letters and spaces"
+            else -> null
+        }
+
+        icError = when {
+            icNumber.isBlank() -> "IC number is required"
+            icNumber.length != 12 -> "IC number must be exactly 12 digits"
+            else -> null
+        }
+
+        return nameError == null && icError == null
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -64,29 +84,44 @@ fun RegistrationPage(navController: NavController) {
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Student name
+            // ---- Student name ----
             OutlinedTextField(
                 value = studentName,
-                onValueChange = { studentName = it },
+                onValueChange = {
+                    studentName = it
+                    nameError = null   // clear the error as soon as they start fixing it
+                },
                 label = { Text("Student Name") },
                 singleLine = true,
+                isError = nameError != null,
+                supportingText = {
+                    nameError?.let { Text(it) }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // IC number
+            // ---- IC number ----
             OutlinedTextField(
                 value = icNumber,
                 onValueChange = { input ->
-                    // only allow digits
-                    if (input.all { it.isDigit() }) icNumber = input
+                    // block non-digits and anything past 12 characters at the source
+                    if (input.all { it.isDigit() } && input.length <= 12) {
+                        icNumber = input
+                        icError = null
+                    }
                 },
                 label = { Text("IC Number") },
+                placeholder = { Text("e.g. 050312101234") },
                 singleLine = true,
+                isError = icError != null,
+                supportingText = {
+                    Text(icError ?: "${icNumber.length}/12 digits")
+                },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Programme dropdown
+
             ExposedDropdownMenuBox(
                 expanded = dropdownExpanded,
                 onExpandedChange = { dropdownExpanded = it }
@@ -104,8 +139,6 @@ fun RegistrationPage(navController: NavController) {
                         .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                 )
 
-                // This is a member of ExposedDropdownMenuBoxScope, so it must
-                // stay inside the box - that is why it needs no separate import.
                 ExposedDropdownMenu(
                     expanded = dropdownExpanded,
                     onDismissRequest = { dropdownExpanded = false }
@@ -122,7 +155,6 @@ fun RegistrationPage(navController: NavController) {
                 }
             }
 
-            // Citizenship checkbox
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -139,16 +171,17 @@ fun RegistrationPage(navController: NavController) {
                 Text("Malaysian")
             }
 
+            // ---- Submit ----
             Button(
                 onClick = {
-
-                    val name = Uri.encode(studentName.trim())
-                    val programme = Uri.encode(selectedProgramme)
-                    navController.navigate(
-                        "successPage/$name/${icValue ?: 0}/$programme/$citizen"
-                    )
+                    if (validate()) {
+                        val name = Uri.encode(studentName.trim())
+                        val programme = Uri.encode(selectedProgramme)
+                        navController.navigate(
+                            "successPage/$name/$icNumber/$programme/$citizen"
+                        )
+                    }
                 },
-                enabled = formValid,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Register")
